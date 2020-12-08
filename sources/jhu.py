@@ -1,15 +1,21 @@
 import datetime as dt
 import json
+import locale
+
 import requests
 import numpy as np
 
-from covid_tools.sources import load_jhu_us_cases, load_jhu_us_deaths, load_jhu_us
+from covid_tools.sources.query import load_jhu_us_cases, load_jhu_us_deaths, load_jhu_us
+from covid_tools.const import *
+
+locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
 
 JHU_CSSE_NCOV_LIVE_URL = 'https://services1.arcgis.com/0MSEUqKaxRlEPj5g/arcgis/rest/services/ncov_cases/FeatureServer/2/query'
 
 US_QUERY_PARAMS = {
     'where': "Country_Region='US'",
     'outFields': 'Last_Update,Confirmed,Deaths',
+    'returnGeometry': 'false',
     'f': 'json',
 }
 
@@ -30,8 +36,8 @@ def get_jhu_us_aggregate(fetch=False):
 
 def get_jhu_us_states(fetch=False):
     df = load_jhu_us(fetch)
-    df = df.loc[~df.loc[:, 'state'].isin(('Diamond Princess', 'Grand Princess'))]
-    df = df.groupby(['date', 'state']).sum().reset_index().convert_dtypes()
+    df = df.loc[~df.loc[:, STATE].isin(('Diamond Princess', 'Grand Princess'))]
+    df = df.groupby([DATE, STATE]).sum().reset_index().convert_dtypes()
 
     # states = df.loc[:, 'state'].unique()
     # for state in states:
@@ -60,8 +66,11 @@ def fetch_us_live_new(fetch=False):
         'New Deaths': current['Deaths'] - previous_day_deaths,
     }
 
+
 def display_us_live(fetch=False):
     live_data = fetch_us_live_new()
-    return 'Last Update:\t{}\nNew Cases:\t{}\nNew Deaths:\t{}'.format(
-        live_data['Last Update'].strftime('%I:%M %p'),
-        live_data['New Cases'], live_data['New Deaths'])
+    return (
+        f"Last Update:\t{live_data['Last Update'].strftime('%I:%M %p')}\n"
+        f"New Cases:\t{live_data['New Cases']:,}\n"
+        f"New Deaths:\t{live_data['New Deaths']:,}"
+    )
