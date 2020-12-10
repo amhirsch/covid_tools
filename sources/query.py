@@ -6,40 +6,55 @@ import requests
 
 from covid_tools.const import *
 
-SOURCES_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
-
-CTP_US_URL = 'https://api.covidtracking.com/v1/us/daily.csv'
-CTP_US_CSV = os.path.join(SOURCES_DIR, 'ctp-us.csv')
-
 JHU_TS_BASE_URL = 'https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series/'
-JHU_US_CASES_URL = JHU_TS_BASE_URL + 'time_series_covid19_confirmed_US.csv'
-JHU_US_DEATHS_URL = JHU_TS_BASE_URL + 'time_series_covid19_deaths_US.csv'
-JHU_US_CASES_CSV = os.path.join(SOURCES_DIR, 'jhu-us-cases.csv')
-JHU_US_DEATHS_CSV = os.path.join(SOURCES_DIR, 'jhu-us-deaths.csv')
+CTP_API = 'https://api.covidtracking.com/'
 
-CDPH_HOSPITALS_URL = 'https://data.ca.gov/dataset/529ac907-6ba1-4cb7-9aae-8966fc96aeef/resource/42d33765-20fd-44b8-a978-b083b7542225/download/hospitals_by_county.csv'
-CDPH_HOSPITALS_CSV = os.path.join(SOURCES_DIR, 'cdph-hospitals.csv')
-CDPH_CASES_URL = 'https://data.ca.gov/dataset/590188d5-8545-4c93-a9a0-e230f0db7290/resource/926fd08f-cc91-4828-af38-bd45de97f8c3/download/statewide_cases.csv'
-CDPH_CASES_CSV = os.path.join(SOURCES_DIR, 'cdph-cases.csv')
+JHU_US_CASES, JHU_US_DEATHS = [f'jhu-us-{x}' for x in ('cases', 'deaths')]
+CDPH_CASES, CDPH_HOSPITALS = [f'cdph-{x}' for x in ('cases', 'hospitals')]
 
+SOURCES = pd.DataFrame(
+    [
+        [
+            JHU_US_CASES,
+            JHU_TS_BASE_URL+'time_series_covid19_confirmed_US.csv',
+        ], [
+            JHU_US_DEATHS,
+            JHU_TS_BASE_URL+'time_series_covid19_deaths_US.csv',
+        ], [
+            'ctp-national',
+            CTP_API+'/v1/us/daily.csv',
+        ], [
+            CDPH_CASES,
+            'https://data.ca.gov/dataset/590188d5-8545-4c93-a9a0-e230f0db7290/resource/926fd08f-cc91-4828-af38-bd45de97f8c3/download/statewide_cases.csv'
+        ], [
+            CDPH_HOSPITALS,
+            'https://data.ca.gov/dataset/529ac907-6ba1-4cb7-9aae-8966fc96aeef/resource/42d33765-20fd-44b8-a978-b083b7542225/download/hospitals_by_county.csv',
+        ], 
+    ],
+    columns=['name', 'url']
+)
+SOURCES['csv'] = SOURCES['name'].apply(
+    lambda x: os.path.join(DATA_DIR, x+'.csv'))
+SOURCES.set_index('name', inplace=True)
 
-def fetch_source(url, csv):
-    r = requests.get(url)
+def fetch_source(name):
+    r = requests.get(SOURCES.loc[name].loc['url'])
     if r.status_code == 200:
-        with open(csv, 'w') as f:
+        with open(SOURCES.loc[name].loc['csv'], 'w') as f:
             f.write(r.text)
     else:
         raise ConnectionError('Non 200 HTTP Status Code')
 
 
-def load_source(url, csv, fetch):
-    if not os.path.isfile(csv) or fetch:
-        fetch_source(url, csv)
-    return pd.read_csv(csv)
+def load_source(name, fetch):
+    target_csv = SOURCES.loc[name].loc['csv']
+    if not os.path.isfile(target_csv) or fetch:
+        fetch_source(name)
+    return pd.read_csv(target_csv)
 
 
 def load_ctp_us(fetch=False):
-    df = load_source(CTP_US_URL, CTP_US_CSV, fetch)
+    df = load_source('ctp-national', fetch)
     df.loc[:, DATE] = pd.to_datetime(df.loc[:, DATE].apply(str))
     df.drop(columns=['dateChecked','lastModified','hash'], inplace=True)
     df.sort_values(DATE, inplace=True)
@@ -60,12 +75,12 @@ def tidy_jhu(df, value_col):
 
 
 def load_jhu_us_cases(fetch=False, tidy=True):
-    df = load_source(JHU_US_CASES_URL, JHU_US_CASES_CSV, fetch)
+    df = load_source(JHU_US_CASES, fetch)
     return tidy_jhu(df, CASES) if tidy else df
 
 
 def load_jhu_us_deaths(fetch=False, tidy=True):
-    df = load_source(JHU_US_DEATHS_URL, JHU_US_DEATHS_CSV, fetch)
+    df = load_source(JHU_US_DEATHS, fetch)
     return tidy_jhu(df.drop(columns='Population'), DEATHS) if tidy else df
 
 
@@ -75,13 +90,13 @@ def load_jhu_us(fetch=False):
 
 
 def load_cdph_hospitals(fetch=False):
-    df = load_source(CDPH_HOSPITALS_URL, CDPH_HOSPITALS_CSV, fetch)
+    df = load_source(CDPH_HOSPITALS, fetch)
     df['todays_date'] = pd.to_datetime(df['todays_date'])
     return df.rename(columns={'todays_date': DATE}).copy()
 
 
 def load_cdph_cases(fetch=False):
-    return load_source(CDPH_CASES_URL, CDPH_CASES_CSV, fetch)
+    return load_source(CDPH_CASES, fetch)
 
 
 def fetch_all():
