@@ -10,6 +10,8 @@ pandas = "*"
 seaborn = "*"
 requests = "*"
 jupyterlab = "*"
+plotly = "*"
+ipywidgets = "*"
 
 [dev-packages]
 ipython = "*"
