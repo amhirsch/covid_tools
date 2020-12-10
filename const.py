@@ -3,6 +3,7 @@ JHU = 'jhu'
 ALL = 'all'
 
 STATE = 'state'
+REGION = 'region'
 COUNTY = 'county'
 
 DATE = 'date'

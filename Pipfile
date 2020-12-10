@@ -12,6 +12,7 @@ requests = "*"
 jupyterlab = "*"
 plotly = "*"
 ipywidgets = "*"
+xlrd = "*"
 
 [dev-packages]
 ipython = "*"

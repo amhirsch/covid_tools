@@ -119,6 +119,15 @@ def normalize_population_groups(
         group_col, date_col)
 
 
+def combine_groups(df, date_col, subgroup_col, group_mapper, group_col):
+    df = df.copy()
+    group_func = (group_mapper.get
+                  if isinstance(group_mapper, dict) else group_mapper)
+    df[group_col] = df[subgroup_col].apply(group_func)
+    df = df[df[group_col].notna()]
+    return df.groupby([date_col, group_col]).sum().reset_index()
+
+
 if __name__ == "__main__":
     from covid_tools.sources.query import load_jhu_us
     from covid_tools.const import STATE, COUNTY, CASES, NEW_CASES

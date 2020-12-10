@@ -17,6 +17,11 @@ JHU_US_DEATHS_URL = JHU_TS_BASE_URL + 'time_series_covid19_deaths_US.csv'
 JHU_US_CASES_CSV = os.path.join(SOURCES_DIR, 'jhu-us-cases.csv')
 JHU_US_DEATHS_CSV = os.path.join(SOURCES_DIR, 'jhu-us-deaths.csv')
 
+CDPH_HOSPITALS_URL = 'https://data.ca.gov/dataset/529ac907-6ba1-4cb7-9aae-8966fc96aeef/resource/42d33765-20fd-44b8-a978-b083b7542225/download/hospitals_by_county.csv'
+CDPH_HOSPITALS_CSV = os.path.join(SOURCES_DIR, 'cdph-hospitals.csv')
+CDPH_CASES_URL = 'https://data.ca.gov/dataset/590188d5-8545-4c93-a9a0-e230f0db7290/resource/926fd08f-cc91-4828-af38-bd45de97f8c3/download/statewide_cases.csv'
+CDPH_CASES_CSV = os.path.join(SOURCES_DIR, 'cdph-cases.csv')
+
 
 def fetch_source(url, csv):
     r = requests.get(url)
@@ -69,6 +74,16 @@ def load_jhu_us(fetch=False):
                     on=[DATE, STATE, COUNTY])
 
 
+def load_cdph_hospitals(fetch=False):
+    df = load_source(CDPH_HOSPITALS_URL, CDPH_HOSPITALS_CSV, fetch)
+    df['todays_date'] = pd.to_datetime(df['todays_date'])
+    return df.rename(columns={'todays_date': DATE}).copy()
+
+
+def load_cdph_cases(fetch=False):
+    return load_source(CDPH_CASES_URL, CDPH_CASES_CSV, fetch)
+
+
 def fetch_all():
     load_ctp_us(True)
     load_jhu_us(True)
@@ -100,4 +115,3 @@ if __name__ == "__main__":
     if args.get == JHU or args.get == ALL:
         load_jhu_us(True)
         print('Queried Johns Hopkins University - US cases and deaths time series')
-        
