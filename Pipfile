@@ -14,6 +14,7 @@ jupyterlab = "*"
 [dev-packages]
 ipython = "*"
 pylint = "*"
+rope = "*"
 
 [requires]
 python_version = "3.8"
