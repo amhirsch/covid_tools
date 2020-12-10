@@ -30,7 +30,7 @@ def convert_to_np_nan(df):
     return df.copy().replace({pd.NA: np.nan})
 
 
-def plot_daily_and_avg_static(df, date_col, daily_change_col, rolling_avg_col, ax):
+def daily_and_avg_static(df, date_col, daily_change_col, rolling_avg_col, ax):
     ax.tick_params('x', labelrotation=90)
     sns.scatterplot(x=date_col, y=daily_change_col, data=df, ax=ax)
     sns.lineplot(x=date_col, y=rolling_avg_col, data=df, ax=ax, label=rolling_avg_col)
@@ -38,13 +38,13 @@ def plot_daily_and_avg_static(df, date_col, daily_change_col, rolling_avg_col, a
     return ax
 
 
-def plot_comparative_static(df, date_col, dep_var_col, group_col, ax):
+def comparative_static(df, date_col, dep_var_col, group_col, ax):
     ax.tick_params('x', labelrotation=90)
     sns.lineplot(x=date_col, y=dep_var_col, hue=group_col, data=df, ax=ax)
     return ax
 
 
-def plot_daily_and_avg_interactive(df, date_col, daily_change_col, rolling_avg_col):
+def daily_and_avg_interactive(df, date_col, daily_change_col, rolling_avg_col):
     df = convert_to_np_nan(fill_missing_date(df, date_col))
     fig = go.Figure()
     fig.add_scatter(x=df[date_col], y=df[daily_change_col], mode='markers', name=daily_change_col)
@@ -53,6 +53,6 @@ def plot_daily_and_avg_interactive(df, date_col, daily_change_col, rolling_avg_c
     return fig
 
 
-def plot_comparative_interactive(df, date_col, dep_var_raw_col, dep_var_norm_col, group_col):
+def comparative_interactive(df, date_col, dep_var_raw_col, dep_var_norm_col, group_col):
     df = convert_to_np_nan(fill_missing_date_groups(df, date_col, group_col))
     return px.line(df, x=date_col, y=dep_var_norm_col, color=group_col, hover_data=[dep_var_raw_col])

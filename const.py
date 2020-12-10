@@ -6,9 +6,13 @@ CTP = 'ctp'
 JHU = 'jhu'
 ALL = 'all'
 
-STATE = 'state'
-REGION = 'region'
-COUNTY = 'county'
+STATE = 'State'
+REGION = 'Region'
+COUNTY = 'County'
+
+JHU_STATE_DROP = ['Diamond Princess', 'Grand Princess']
+
+POPULATION = 'Population'
 
 DATE = 'date'
 CASES = 'cases'
