@@ -83,8 +83,9 @@ CA_COUNTIES[COUNTY] =  CA_COUNTIES[COUNTY].apply(
 CA_COUNTIES[REGION] = CA_COUNTIES[COUNTY].apply(
     CA_REGIONS.get).astype('category')
 CA_COUNTIES.set_index(COUNTY, inplace=True)
+CA_COUNTY_POPULATIONS = CA_COUNTIES.loc[:, POPULATION]
 
-CA_REGION_POPULATIONS = CA_COUNTIES.groupby(REGION).sum()
+CA_REGION_POPULATIONS = CA_COUNTIES.groupby(REGION).sum().loc[:, POPULATION]
 
 
 if __name__ == "__main__":

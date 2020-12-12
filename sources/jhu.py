@@ -20,17 +20,7 @@ US_QUERY_PARAMS = {
 }
 
 def get_jhu_us_aggregate(fetch=False):
-    df_jhu = load_jhu_us(fetch).groupby(['date']).sum().reset_index()
-
-    calculations = (
-        ('cases', 'newCases', 'newCasesAvg', 'newCasesDelta'),
-        ('deaths', 'newDeaths', 'newDeathsAvg', 'newDeathsDelta'),
-    )
-    for variable, raw_change, average, derivative in calculations:
-        df_jhu[raw_change] = df_jhu[variable].diff()
-        df_jhu[average] = df_jhu[raw_change].astype('float64').rolling(7).mean()
-        df_jhu[derivative] = df_jhu[average].diff()
-
+    df_jhu = load_jhu_us(fetch).groupby([DATE]).sum().reset_index()
     return df_jhu
 
 
@@ -38,11 +28,6 @@ def get_jhu_us_states(fetch=False):
     df = load_jhu_us(fetch)
     df = df.loc[~df.loc[:, STATE].isin(('Diamond Princess', 'Grand Princess'))]
     df = df.groupby([DATE, STATE]).sum().reset_index().convert_dtypes()
-
-    # states = df.loc[:, 'state'].unique()
-    # for state in states:
-    #     state_mask = df.loc[:, 'state'] = state
-
     return df
 
 

@@ -67,7 +67,7 @@ def tidy_jhu(df, value_col):
         'UID', 'iso2', 'iso3', 'code3', 'FIPS', 'Country_Region',
         'Lat', 'Long_', 'Combined_Key'], inplace=True)
     df.rename(columns={'Admin2': COUNTY, 'Province_State': STATE}, inplace=True)
-    df = df.melt(('county', 'state'), var_name='date', value_name=value_col)
+    df = df.melt((COUNTY, STATE), var_name=DATE, value_name=value_col)
     df.loc[:, DATE] = pd.to_datetime(df.loc[:, DATE])
     df = df.convert_dtypes()
     # df = df.sort_values(['date', 'state', 'county'])
@@ -128,5 +128,7 @@ if __name__ == "__main__":
         load_ctp_us(True)
         print('Queried COVID Tracking Project - Historic US values')
     if args.get == JHU or args.get == ALL:
-        load_jhu_us(True)
-        print('Queried Johns Hopkins University - US cases and deaths time series')
+        load_jhu_us_cases(True, False)
+        print('Queried Johns Hopkins University - US cases time series')
+        load_jhu_us_deaths(True, False)
+        print('Queried Johns Hopkins University - US deaths time series')
