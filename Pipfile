@@ -13,6 +13,7 @@ jupyterlab = "*"
 plotly = "*"
 ipywidgets = "*"
 xlrd = "*"
+bs4 = "*"
 
 [dev-packages]
 ipython = "*"

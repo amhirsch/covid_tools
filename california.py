@@ -3,7 +3,7 @@ import pandas as pd
 from covid_tools.const import *
 import covid_tools.calc
 
-POPULATION_XLSX = os.path.join(DATA_DIR, 'P1_County_1yr.xlsx')
+POPULATION_CSV = os.path.join(DATA_DIR, 'ca_county_p1a.csv')
 
 NC = 'Northern California'
 BA = 'Bay Area'
@@ -72,14 +72,7 @@ CA_REGIONS = {
     'Yuba': GS,
 }
 
-CA_COUNTIES = pd.read_excel(POPULATION_XLSX, header=2, index_col=0,
-                                     usecols='A,L', nrows=59)
-CA_COUNTIES.drop('California', inplace=True)
-CA_COUNTIES.reset_index(inplace=True)
-CA_COUNTIES.rename(columns={POPULATION: COUNTY, '2020': POPULATION},
-                            inplace=True)
-CA_COUNTIES[COUNTY] =  CA_COUNTIES[COUNTY].apply(
-    lambda x: x[:-7]).convert_dtypes()
+CA_COUNTIES = pd.read_csv(POPULATION_CSV)
 CA_COUNTIES[REGION] = CA_COUNTIES[COUNTY].apply(
     CA_REGIONS.get).astype('category')
 CA_COUNTIES.set_index(COUNTY, inplace=True)
@@ -90,4 +83,4 @@ CA_REGION_POPULATIONS = CA_COUNTIES.groupby(REGION).sum().loc[:, POPULATION]
 
 if __name__ == "__main__":
     import covid_tools.calc
-    import covid_tools.sources.query
+    import covid_tools.query

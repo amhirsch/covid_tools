@@ -5,4 +5,4 @@ __pycache__/
 scratch_work/
 data/*
 !data/README.md
-!data/P1_County_1yr.xlsx
+!data/ca_county_p1a.csv

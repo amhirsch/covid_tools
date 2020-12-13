@@ -191,7 +191,7 @@ def compute_all_groups(
 if __name__ == "__main__":
     from covid_tools.sources.query import load_jhu_us
     from covid_tools.const import STATE, COUNTY, CASES, NEW_CASES
-    from covid_tools.population import STATE_POPULATIONS
+    from covid_tools.population import STATE_POPULATIONS, US_POPULATION
     from covid_tools.sources.jhu import JHU_STATE_DROP
     df = load_jhu_us()
     filter_lower_bound = df[DATE].max() - pd.Timedelta(30, 'days')
@@ -203,6 +203,7 @@ if __name__ == "__main__":
     CA = 'California'
     OR = 'Oregon'
     WA = 'Washington'
+    df_california = df_state[df_state[STATE]==CA].copy()
     df_west = df[
         df[STATE].isin([CA, OR, WA])].groupby([DATE, STATE]).sum().reset_index()
     df_west_missing = df_west.drop(list(range(75, 84))).copy()

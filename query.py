@@ -92,7 +92,7 @@ def load_jhu_us(fetch=False):
 def load_cdph_hospitals(fetch=False):
     df = load_source(CDPH_HOSPITALS, fetch)
     df['todays_date'] = pd.to_datetime(df['todays_date'])
-    return df.rename(columns={'todays_date': DATE}).copy()
+    return df.rename(columns={'todays_date': DATE, 'county': COUNTY}).copy()
 
 
 def load_cdph_cases(fetch=False):
