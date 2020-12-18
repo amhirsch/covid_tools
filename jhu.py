@@ -84,6 +84,6 @@ def display_us_live(fetch=False, html=False):
     live_data = fetch_us_live_new(fetch, html)
     return (
         f"{LAST_UPDATE}:\t{live_data[LAST_UPDATE].strftime('%I:%M %p')}\n"
-        f"{NEW_CASES}:\t{live_data[{NEW_CASES}]:,}\n"
-        f"{NEW_DEATHS}:\t{live_data[{NEW_DEATHS}]:,}"
+        f"{NEW_CASES}:\t{live_data[NEW_CASES]:,}\n"
+        f"{NEW_DEATHS}:\t{live_data[NEW_DEATHS]:,}"
     )

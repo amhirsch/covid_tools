@@ -1,5 +1,5 @@
 from covid_tools.const import STATE, POPULATION, JHU_STATE_DROP
-from covid_tools.sources.query import load_jhu_us_deaths
+from covid_tools.query import load_jhu_us_deaths
 
 
 STATE_POPULATIONS = (

@@ -54,16 +54,22 @@ def group_calc(df, single_group_func, group_col, sort_col=None,
         df_group = df[df[group_col] == group]
         indiv_groups.append(single_group_func(df_group, group))
     sort_list = group_col if sort_col is None else [sort_col, group_col]
-    return pd.concat(
-        indiv_groups).sort_values(sort_list).reset_index(drop=True).copy()
+    df = pd.concat(indiv_groups).sort_values(sort_list)
+    return df[df[group_col].notna()].reset_index(drop=True).copy()
 
 
 def fill_missing_date(df, date_col):
     """Identifies and fills missing days with a NA marker."""
-    df = df.copy()
-    correct_range = pd.date_range(
-        df[date_col].min(), df[date_col].max(), name=date_col)
-    return df.set_index(date_col).reindex(correct_range).reset_index()
+    try:
+        return pd.merge(
+        pd.DataFrame(
+            index=pd.date_range(df[date_col].min(), df[date_col].max(),
+                                name=date_col)
+        ).reset_index(), df, 'left', on=date_col
+    ).copy()
+    except ValueError:
+        print(f'Value Error on:\n{df.head()}\n{df.tail()}')
+
 
 
 def fill_missing_date_groups(df, date_col, group_col, exclude_groups=None):
@@ -137,23 +143,32 @@ def normalize_population_groups(
 
 def combine_groups(df, date_col, subgroup_col, group_mapper, group_col):
     df = df.copy()
-    group_func = (group_mapper.get
-                  if isinstance(group_mapper, dict) else group_mapper)
+    group_func = mapper_to_func(group_mapper)
     df[group_col] = df[subgroup_col].apply(group_func)
     df = df[df[group_col].notna()]
     return df.groupby([date_col, group_col]).sum().reset_index()
+
+
+def _check_tuple_param(param):
+    return isinstance(param, tuple) and len(param) == 2
 
 
 def compute_all(df, date_col, var_col, var_dt_col=None, var_dt_avg_col=None,
                 var_norm_col=None, var_dt_norm_avg_col=None,
                 pop_size=None, avg_window=14, norm_size=1e5):
     columns_to_drop = []
+    columns_to_round = {}
     if var_dt_col is None:
         var_dt_col = 'temp_dt'
         columns_to_drop.append(var_dt_col)
     if var_dt_avg_col is None:
         var_dt_avg_col = 'temp_dt_avg'
         columns_to_drop.append(var_dt_avg_col)
+    elif _check_tuple_param(var_dt_avg_col):
+        columns_to_round[var_dt_avg_col[0]] = var_dt_avg_col[1]
+        var_dt_avg_col = var_dt_avg_col[0]
+    else:
+        columns_to_round[var_dt_avg_col] = 1
 
     df = daily_change(df, date_col, var_col, var_dt_col)
     df = rolling_avg(df, date_col, var_dt_col, var_dt_avg_col, avg_window)
@@ -162,14 +177,29 @@ def compute_all(df, date_col, var_col, var_dt_col=None, var_dt_avg_col=None,
         if var_norm_col is None:
             var_norm_col = 'temp_norm'
             columns_to_drop.append(var_norm_col)
+        elif _check_tuple_param(var_norm_col):
+            columns_to_round[var_norm_col[0]] = var_norm_col[1]
+            var_norm_col = var_norm_col[0]
+        else:
+            columns_to_round[var_norm_col] = 1
         if var_dt_norm_avg_col is None:
             var_dt_norm_avg_col = 'temp_dt_norm_avg'
             columns_to_drop.append(var_dt_norm_avg_col)
+        elif _check_tuple_param(var_dt_norm_avg_col):
+            columns_to_round[var_dt_norm_avg_col[0]] = var_dt_norm_avg_col[1]
+            var_dt_norm_avg_col = var_dt_norm_avg_col[0]
+        else:
+            columns_to_round[var_dt_norm_avg_col] = 2
 
         df = normalize_population(df, var_col, var_norm_col,
                                   pop_size, norm_size)
         df = normalize_population(df, var_dt_avg_col, var_dt_norm_avg_col,
                                   pop_size, norm_size)
+
+    df = df[df[var_col].notna()].reset_index(drop=True).copy()
+    df = df.convert_dtypes()
+    for col in columns_to_round:
+        df[col] = df[col].fillna(np.nan).round(columns_to_round[col])
 
     return df.drop(columns=columns_to_drop)
 
@@ -189,10 +219,10 @@ def compute_all_groups(
 
 
 if __name__ == "__main__":
-    from covid_tools.sources.query import load_jhu_us
+    from covid_tools.query import load_jhu_us
     from covid_tools.const import STATE, COUNTY, CASES, NEW_CASES
     from covid_tools.population import STATE_POPULATIONS, US_POPULATION
-    from covid_tools.sources.jhu import JHU_STATE_DROP
+    from covid_tools.jhu import JHU_STATE_DROP
     df = load_jhu_us()
     filter_lower_bound = df[DATE].max() - pd.Timedelta(30, 'days')
     df = df[df[DATE] >= filter_lower_bound].copy()
@@ -207,4 +237,5 @@ if __name__ == "__main__":
     df_west = df[
         df[STATE].isin([CA, OR, WA])].groupby([DATE, STATE]).sum().reset_index()
     df_west_missing = df_west.drop(list(range(75, 84))).copy()
+    df_wa_missing = df_west_missing[df_west_missing[STATE]==WA].copy()
 
