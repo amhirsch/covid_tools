@@ -5,7 +5,7 @@ from covid_tools.const import DATE
 
 
 def mapper_to_func(map_obj):
-    """Converts a mapping object to a function"""
+    """Converts an object providing a mapping to a callable function"""
     map_func = map_obj
     if isinstance(map_obj, dict):
         map_func = map_obj.get
@@ -44,7 +44,6 @@ def group_calc(df, single_group_func, group_col, sort_col=None,
         to each group. Depending on the function, this may add additional
         columns.
     """
-
     if exclude_groups is None:
         exclude_groups = []
     indiv_groups = []
@@ -58,64 +57,71 @@ def group_calc(df, single_group_func, group_col, sort_col=None,
     return df[df[group_col].notna()].reset_index(drop=True).copy()
 
 
-def fill_missing_date(df, date_col):
-    """Identifies and fills missing days with a NA marker."""
+def fill_missing_date(df, date_col, ffill_missing=True):
+    """Identifies and fills missing days"""
     try:
-        return pd.merge(
-        pd.DataFrame(
-            index=pd.date_range(df[date_col].min(), df[date_col].max(),
-                                name=date_col)
-        ).reset_index(), df, 'left', on=date_col
-    ).copy()
+        df = pd.merge(
+            pd.DataFrame(
+                index=pd.date_range(df[date_col].min(), df[date_col].max(),
+                                    name=date_col)
+            ).reset_index(), df, 'left', on=date_col
+        ).copy()
     except ValueError:
-        print(f'Value Error on:\n{df.head()}\n{df.tail()}')
+        print(f'Value Error on:\n{df}')
+    if ffill_missing:
+        df = df.ffill().copy()
+    return df
 
 
-
-def fill_missing_date_groups(df, date_col, group_col, exclude_groups=None):
+def fill_missing_date_groups(df, date_col, group_col, exclude_groups=None,
+                             ffill_missing=True):
     """Fills missing date rows for dataframe with multiple groups."""
     def fill_missing_add_group_col(df, group):
-        df = fill_missing_date(df, date_col)
+        df = fill_missing_date(df, date_col, ffill_missing)
         df[group_col] = group
         return df
     return group_calc(df, fill_missing_add_group_col, group_col, date_col,
                       exclude_groups)
 
 
-def daily_change(df, date_col, dep_var_orig, dep_var_dt):
+def daily_change(df, date_col, dep_var_orig, dep_var_dt, ffill_missing=True):
     """Calculates daily change in the dependent variable. Providing date_col
         ensures that there are no missing dates.
     """
-    df = df.copy() if date_col is None else fill_missing_date(df, date_col)
+    df = (df.copy() if date_col is None else
+          fill_missing_date(df, date_col, ffill_missing))
     df[dep_var_dt] = df[dep_var_orig].diff()
     return df
 
 
 def daily_change_groups(df, date_col, dep_var_orig, dep_var_dt, group_col,
-                        exclude_groups=None):
+                        exclude_groups=None, ffill_missing=True):
     """Calculates the daily change for multiple groups"""
     return group_calc(
         df,
-        lambda x,y: daily_change(x, date_col, dep_var_orig, dep_var_dt),
+        lambda x,y: daily_change(x, date_col, dep_var_orig, dep_var_dt,
+                                 ffill_missing),
         group_col, date_col, exclude_groups)
 
 
-def rolling_avg(df, date_col, dep_var_orig, dep_var_rolling_avg, window):
+def rolling_avg(df, date_col, dep_var_orig, dep_var_rolling_avg, window,
+                ffill_missing=True):
     """Calculates a rolling average with the given window. Providing date_col
         ensures there are no missing dates.
     """
-    df = df.copy() if date_col is None else fill_missing_date(df, date_col)
+    df = (df.copy() if date_col is None else
+          fill_missing_date(df, date_col, ffill_missing))
     df[dep_var_rolling_avg] = df[
         dep_var_orig].astype('float64').rolling(window).mean()
     return df
 
 
 def rolling_avg_groups(df, date_col, dep_var_orig, dep_var_rolling_avg, window,
-                       group_col, exclude_groups=None):
+                       group_col, exclude_groups=None, ffill_missing=True):
     return group_calc(
         df,
         lambda x,y: rolling_avg(x, date_col, dep_var_orig, dep_var_rolling_avg,
-                                window),
+                                window, ffill_missing),
         group_col, date_col, exclude_groups)
 
 
@@ -142,6 +148,7 @@ def normalize_population_groups(
 
 
 def combine_groups(df, date_col, subgroup_col, group_mapper, group_col):
+    """Aggregates entries into larger groups"""
     df = df.copy()
     group_func = mapper_to_func(group_mapper)
     df[group_col] = df[subgroup_col].apply(group_func)
@@ -155,7 +162,8 @@ def _check_tuple_param(param):
 
 def compute_all(df, date_col, var_col, var_dt_col=None, var_dt_avg_col=None,
                 var_norm_col=None, var_dt_norm_avg_col=None,
-                pop_size=None, avg_window=14, norm_size=1e5):
+                pop_size=None, avg_window=14, norm_size=1e5,
+                ffill_missing=True):
     columns_to_drop = []
     columns_to_round = {}
     if var_dt_col is None:
@@ -170,8 +178,8 @@ def compute_all(df, date_col, var_col, var_dt_col=None, var_dt_avg_col=None,
     else:
         columns_to_round[var_dt_avg_col] = 1
 
-    df = daily_change(df, date_col, var_col, var_dt_col)
-    df = rolling_avg(df, date_col, var_dt_col, var_dt_avg_col, avg_window)
+    df = daily_change(df, date_col, var_col, var_dt_col, ffill_missing)
+    df = rolling_avg(df, None, var_dt_col, var_dt_avg_col, avg_window)
 
     if pop_size is not None:
         if var_norm_col is None:
@@ -199,21 +207,34 @@ def compute_all(df, date_col, var_col, var_dt_col=None, var_dt_avg_col=None,
     df = df[df[var_col].notna()].reset_index(drop=True).copy()
     df = df.convert_dtypes()
     for col in columns_to_round:
-        df[col] = df[col].fillna(np.nan).round(columns_to_round[col])
-
+        try:
+            df[col] = df[col].copy().fillna(np.nan).round(columns_to_round[col])
+        except AttributeError:
+            pass
     return df.drop(columns=columns_to_drop)
 
 
 def compute_all_groups(
     df, date_col, var_col, group_col, var_dt_col=None, var_dt_avg_col=None,
     var_norm_col=None, var_dt_norm_avg_col=None, population_mapper=None,
-    avg_window=14, norm_size=1e5, exclude_groups=None):
+    avg_window=14, norm_size=1e5, exclude_groups=None, ffill_missing=True):
     population_func = mapper_to_func(population_mapper)
+    if any((var_norm_col, var_dt_norm_avg_col)):
+        if population_func is None:
+            raise ValueError('Population mapper not specified')
+        return group_calc(
+            df,
+            lambda x, y: compute_all(
+                x, date_col, var_col, var_dt_col, var_dt_avg_col,
+                var_norm_col, var_dt_norm_avg_col, population_func(y),
+                avg_window, norm_size, ffill_missing
+            ), group_col, date_col, exclude_groups
+        )
     return group_calc(
         df,
         lambda x, y: compute_all(
-            x, date_col, var_col, var_dt_col, var_dt_avg_col, var_norm_col,
-            var_dt_norm_avg_col, population_func(y), avg_window, norm_size
+            x, date_col, var_col, var_dt_col, var_dt_avg_col, avg_window,
+            ffill_missing=ffill_missing
         ), group_col, date_col, exclude_groups
     )
 

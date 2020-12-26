@@ -14,18 +14,12 @@ JHU_STATE_DROP = ['Diamond Princess', 'Grand Princess']
 
 POPULATION = 'Population'
 
-_NORM_SUFFIX = 'per {}'
-_AVG_SUFFIX = '{}-day avg'
-
 DATE = 'Date'
 CASES = 'Cases'
-NEW_CASES = 'New cases'
-NEW_CASES_NORM = f'{NEW_CASES} {_NORM_SUFFIX}'
-NEW_CASES_AVG = f'{NEW_CASES}, {_AVG_SUFFIX}'
-NEW_CASES_AVG_NORM = f'{NEW_CASES_AVG} {_NORM_SUFFIX}'
-
 DEATHS = 'Deaths'
-NEW_DEATHS = 'New deaths'
-NEW_DEATHS_NORM = f'{NEW_DEATHS} {_NORM_SUFFIX}'
-NEW_DEATHS_AVG = f'{NEW_DEATHS}, {_AVG_SUFFIX}'
-NEW_DEATHS_AVG_NORM = f'{NEW_DEATHS_AVG} {_NORM_SUFFIX}'
+NEW_CASES, NEW_DEATHS = [f'New {x.lower()}' for x in (CASES, DEATHS)]
+NEW_CASES_AVG, NEW_DEATHS_AVG = [f'{x}, 7-day avg'
+                                 for x in (NEW_CASES, NEW_DEATHS)]
+CASES_NORM, DEATHS_NORM, NEW_CASES_AVG_NORM, NEW_DEATHS_AVG_NORM = [
+    f'{x} per 100k' for x in (CASES, DEATHS, NEW_CASES_AVG, NEW_DEATHS_AVG)
+]
